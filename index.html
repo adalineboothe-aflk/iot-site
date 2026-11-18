@@ -38,8 +38,10 @@
 <div class="card">
   <h2>Remote Lamp</h2>
   <button class="red"   onclick="sendLamp('red')">Red</button>
+  <button class="green" onclick="sendLamp('green')">Green</button>
+  <button class="blue"  onclick="sendLamp('blue')">Blue</button>
+  <button class="off"   onclick="sendLamp('beep')">Buzzer</button>
   <button class="off"   onclick="sendLamp('off')">Off</button>
-  <!-- YOUR TURN: add Green, Blue, and a Buzzer button. -->
   <div class="small" id="lampStatus"></div>
 </div>
 
@@ -121,7 +123,16 @@ function showDoorbell(value, createdAt, flash) {
   // Right now this just prints the raw value ("A"). Turn it into a real message:
   //   "A" -> "Someone is at the door!"   "B" -> ...   "C" -> ...
   // =====================
-  let message = "Button " + value + " was pressed";
+  let message;
+  if (value === "A") {
+    message = "Someone is at the door!";
+  } else if (value === "B") {
+    message = "Package delivered!";
+  } else if (value === "C") {
+    message = "Emergency - come quick!";
+  } else {
+    message = "Unknown button: " + value;
+  }
 
   document.getElementById("doorbellStatus").textContent = message;
   document.getElementById("doorbellTime").textContent = "at " + new Date(createdAt).toLocaleTimeString();
