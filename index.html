@@ -3,61 +3,183 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My IoT Page</title>
+<title>Moo's Smart House</title>
 <style>
-  /* ---------- YOU CAN CHANGE ALL OF THIS ---------- */
-  body { font-family: Arial, sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; background: #f5f5f5; color: #222; }
-  h1   { margin-bottom: 4px; }
-  .card { background: #fff; border-radius: 12px; padding: 20px; margin: 16px 0; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
-  .status { font-size: 1.6rem; font-weight: bold; margin: 8px 0; }
-  .small { color: #666; font-size: .9rem; }
-  button { font-size: 1rem; padding: 10px 18px; margin: 4px; border: 0; border-radius: 8px; cursor: pointer; color: #fff; }
-  .red   { background: #d33; }
-  .green { background: #2a2; }
-  .blue  { background: #36c; }
-  .off   { background: #555; }
-  .flash { animation: flash .6s; }
-  @keyframes flash { from { background: #ffe66d; } to { background: #fff; } }
-  #errors { color: #b00; white-space: pre-wrap; }
+  /* ---------- COLORS (change these to restyle the whole page) ---------- */
+  :root {
+    --bg:      #14112b;
+    --card:    #221d45;
+    --text:    #f4f1ff;
+    --muted:   #a59fd0;
+    --accent:  #ff5fa2;
+    --gold:    #ffb300;   /* button A on the board = gold  */
+    --blue:    #2f8bff;   /* button B on the board = blue  */
+    --red:     #ff3b4f;   /* button C on the board = red   */
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Trebuchet MS", Arial, sans-serif;
+    max-width: 680px; margin: 0 auto; padding: 24px 16px 48px;
+    background: radial-gradient(circle at top, #2b2260 0%, var(--bg) 60%) fixed;
+    color: var(--text);
+  }
+  h1 { margin: 0 0 4px; font-size: 2.2rem; }
+  h1 span { color: var(--accent); }
+  h2 { margin: 0 0 12px; }
+  a { color: var(--accent); }
+  .small { color: var(--muted); font-size: .9rem; }
+
+  .card {
+    background: var(--card); border-radius: 18px; padding: 20px; margin: 18px 0;
+    box-shadow: 0 6px 24px rgba(0,0,0,.35); border: 2px solid transparent;
+    transition: border-color .4s;
+  }
+
+  /* ---------- Doorbell ---------- */
+  .bell-row { display: flex; align-items: center; gap: 16px; }
+  .bell { font-size: 3.4rem; display: inline-block; }
+  .ring { animation: ring .9s ease-in-out; }
+  @keyframes ring {
+    0%,100% { transform: rotate(0); }
+    15% { transform: rotate(25deg); }  30% { transform: rotate(-22deg); }
+    45% { transform: rotate(16deg); }  60% { transform: rotate(-10deg); }
+    75% { transform: rotate(5deg); }
+  }
+  .status { font-size: 1.7rem; font-weight: bold; line-height: 1.2; }
+  .count-box { text-align: center; margin-left: auto; }
+  .count { font-size: 2.6rem; font-weight: bold; color: var(--accent); line-height: 1; }
+
+  /* the card glows in the button's color when a NEW press comes in */
+  .flash-A { animation: glowA 1.2s; } @keyframes glowA { from { box-shadow: 0 0 60px var(--gold); border-color: var(--gold); } }
+  .flash-B { animation: glowB 1.2s; } @keyframes glowB { from { box-shadow: 0 0 60px var(--blue); border-color: var(--blue); } }
+  .flash-C { animation: glowC 1.2s; } @keyframes glowC { from { box-shadow: 0 0 60px var(--red);  border-color: var(--red);  } }
+
+  .history { list-style: none; padding: 0; margin: 12px 0 0; }
+  .history li { padding: 6px 0; border-top: 1px solid rgba(255,255,255,.08); font-size: .95rem; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+
+  /* ---------- Lamp ---------- */
+  .lamp-preview {
+    display: flex; gap: 8px; justify-content: center; margin: 4px 0 16px;
+  }
+  .lamp-preview div {
+    width: 26px; height: 26px; border-radius: 50%; background: #333;
+    box-shadow: 0 0 14px currentColor; color: transparent; transition: background .5s, color .5s;
+  }
+  .lamp-preview.party div { animation: hue 2s linear infinite; }
+  @keyframes hue { 0% { background:#f33; } 17% { background:#fb0; } 33% { background:#3d3; } 50% { background:#3cf; } 67% { background:#36f; } 83% { background:#c3f; } 100% { background:#f33; } }
+
+  button {
+    font: inherit; font-size: 1rem; font-weight: bold; padding: 12px 18px; margin: 4px;
+    border: 0; border-radius: 12px; cursor: pointer; color: #fff;
+    transition: transform .1s, filter .2s;
+  }
+  button:hover  { filter: brightness(1.15); }
+  button:active { transform: scale(.94); }
+  button:disabled { filter: grayscale(1) brightness(.6); cursor: wait; }
+  .red    { background: var(--red); }
+  .green  { background: #1fb85a; }
+  .blue   { background: var(--blue); }
+  .off    { background: #555; }
+  .beep   { background: var(--gold); color: #222; }
+  .party  { background: linear-gradient(90deg, #f33, #fb0, #3d3, #3cf, #c3f); }
+  .ghost  { background: rgba(255,255,255,.1); }
+
+  .controls { display: grid; grid-template-columns: auto 1fr; gap: 12px 14px; align-items: center; margin-top: 14px; }
+  input[type=color] { width: 60px; height: 40px; border: 0; background: none; cursor: pointer; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+
+  #errors { white-space: pre-wrap; }
+  #errors.bad { color: #ff8a8a; }
 </style>
 </head>
 <body>
 
-<h1>My IoT Page</h1>
-<p class="small">Adafruit IO user: <span id="whoami">?</span> &nbsp;|&nbsp; <a href="#" id="changeKey">change key</a></p>
+<h1>🏠 Moo's <span>Smart House</span></h1>
+<p class="small">
+  Adafruit IO user: <span id="whoami">?</span> &nbsp;|&nbsp;
+  <a href="#" id="changeKey">change key</a> &nbsp;|&nbsp;
+  <button class="ghost" id="soundBtn" style="padding:4px 10px;font-size:.85rem">🔇 Sound off</button>
+</p>
+
+<!-- ================= KEY BOX (shows when this browser has no key yet) ================= -->
+<div class="card" id="keyCard" style="display:none; border-color: var(--accent)">
+  <h2>🔑 Enter your Adafruit IO key</h2>
+  <p class="small">Each phone or computer needs the key once. It is saved in this browser only, never on GitHub.</p>
+  <input id="keyInput" type="password" placeholder="aio_..." autocomplete="off" autocapitalize="off" spellcheck="false"
+         style="width:100%; font-size:1.1rem; padding:12px; border-radius:10px; border:0; margin:6px 0 10px">
+  <button class="green" id="keySave">Save key</button>
+  <div class="small" id="keyMsg"></div>
+</div>
 
 <!-- ================= PROJECT A : Arduino -> Website ================= -->
 <div class="card" id="cardA">
   <h2>Doorbell</h2>
-  <div class="status" id="doorbellStatus">Waiting for the Arduino...</div>
-  <div class="small" id="doorbellTime"></div>
-  <div class="small">Presses since this page opened: <span id="doorbellCount">0</span></div>
+  <div class="bell-row">
+    <span class="bell" id="bell">🔔</span>
+    <div>
+      <div class="status" id="doorbellStatus">Waiting for the Arduino...</div>
+      <div class="small" id="doorbellTime"></div>
+    </div>
+    <div class="count-box">
+      <div class="count" id="doorbellCount">0</div>
+      <div class="small">new presses</div>
+    </div>
+  </div>
+  <!-- Project C: only shows when someone is at the door (button A) -->
+  <button class="green" id="letInBtn" style="display:none; margin-top:14px" onclick="letThemIn()">🚪 Let them in</button>
+  <ul class="history" id="history"></ul>
 </div>
 
 <!-- ================= PROJECT B : Website -> Arduino ================= -->
 <div class="card">
   <h2>Remote Lamp</h2>
-  <button class="red"   onclick="sendLamp('red')">Red</button>
-  <button class="green" onclick="sendLamp('green')">Green</button>
-  <button class="blue"  onclick="sendLamp('blue')">Blue</button>
-  <button class="off"   onclick="sendLamp('beep')">Buzzer</button>
-  <button class="off"   onclick="sendLamp('off')">Off</button>
-  <div class="small" id="lampStatus"></div>
+  <div class="lamp-preview" id="lampPreview">
+    <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+
+  <div>
+    <button class="red"   onclick="sendLamp('red')">Red</button>
+    <button class="green" onclick="sendLamp('green')">Green</button>
+    <button class="blue"  onclick="sendLamp('blue')">Blue</button>
+    <button class="off"   onclick="sendLamp('off')">Off</button>
+    <button class="beep"  onclick="sendLamp('beep')">🔔 Chime</button>
+    <button class="party" onclick="sendLamp('party')">🎉 Party</button>
+  </div>
+
+  <div class="controls">
+    <label for="picker">Any color</label>
+    <input type="color" id="picker" value="#ff5fa2">
+
+    <label for="bright">Brightness <span id="brightNum">25</span></label>
+    <input type="range" id="bright" min="0" max="100" value="25">
+  </div>
+
+  <p class="small" id="lampStatus">Pick a color! (One message every 2 seconds max.)</p>
 </div>
 
 <div class="card">
-  <h3>Problems?</h3>
+  <h3 style="margin-top:0">Problems?</h3>
   <div id="errors" class="small">None yet.</div>
 </div>
 
 <script>
 /* =====================================================================
-   SETTINGS - change these two lines
+   SETTINGS
    ===================================================================== */
-const IO_USERNAME   = "maggie_moo1";   // <-- your Adafruit IO username
-const DOORBELL_FEED = "doorbell";                     // Project A feed (Arduino -> web)
-const LAMP_FEED     = "lamp";                         // Project B feed (web -> Arduino)
-const POLL_MS       = 2000;                           // how often to check the doorbell feed (ms). Keep >= 2000.
+const IO_USERNAME   = "maggie_moo1";   // <-- your Adafruit IO username (NOT the key)
+const DOORBELL_FEED = "doorbell";      // Project A feed (Arduino -> web)
+const LAMP_FEED     = "lamp";          // Project B feed (web -> Arduino)
+const POLL_MS       = 2000;            // how often to check the doorbell feed (ms). Keep >= 2000.
+const SEND_GAP_MS   = 2000;            // website can't send to the lamp faster than this. Keep >= 2000.
+
+/* What each doorbell button means. Colors match the lights on the board. */
+const DOORBELL = {
+  A: { text: "Someone is at the door!", emoji: "🚪", color: "var(--gold)" },
+  B: { text: "Package delivered 📦",     emoji: "📦", color: "var(--blue)" },
+  C: { text: "Go away! 🙅",             emoji: "🙅", color: "var(--red)"  }
+};
 
 /* =====================================================================
    YOUR KEY IS NOT IN THIS FILE ON PURPOSE.
@@ -67,12 +189,18 @@ const POLL_MS       = 2000;                           // how often to check the 
 function getKey() {
   let key = null;
   try { key = localStorage.getItem("aio_key"); } catch (e) {}
-  if (!key) {
-    key = prompt("Paste your Adafruit IO key (starts with aio_). It stays in this browser only.");
-    if (key) { try { localStorage.setItem("aio_key", key.trim()); } catch (e) {} }
-  }
   return key ? key.trim() : "";
 }
+function showKeyBox(msg) {
+  document.getElementById("keyCard").style.display = "block";
+  document.getElementById("keyMsg").textContent = msg || "";
+}
+document.getElementById("keySave").onclick = () => {
+  const k = document.getElementById("keyInput").value.trim();
+  if (!k.startsWith("aio_")) { document.getElementById("keyMsg").textContent = "That doesn't look right. The key starts with aio_"; return; }
+  try { localStorage.setItem("aio_key", k); } catch (e) {}
+  location.reload();
+};
 document.getElementById("changeKey").onclick = (e) => {
   e.preventDefault();
   try { localStorage.removeItem("aio_key"); } catch (e2) {}
@@ -80,14 +208,54 @@ document.getElementById("changeKey").onclick = (e) => {
 };
 
 const IO_KEY = getKey();
+if (!IO_KEY) showKeyBox("No key in this browser yet.");
 document.getElementById("whoami").textContent = IO_USERNAME;
 
 const BASE = `https://io.adafruit.com/api/v2/${IO_USERNAME}/feeds/`;
 
 function showError(msg) {
-  document.getElementById("errors").textContent = msg;
+  const box = document.getElementById("errors");
+  box.textContent = msg;
+  box.classList.add("bad");
   console.error(msg);
 }
+function showOk(msg) {
+  const box = document.getElementById("errors");
+  box.textContent = msg;
+  box.classList.remove("bad");
+}
+
+/* =====================================================================
+   SOUND - browsers only allow sound after you click something once,
+   so there's a Sound on/off button. These tunes match the board.
+   ===================================================================== */
+let audio = null;
+let soundOn = false;
+document.getElementById("soundBtn").onclick = () => {
+  soundOn = !soundOn;
+  if (soundOn && !audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+  document.getElementById("soundBtn").textContent = soundOn ? "🔊 Sound on" : "🔇 Sound off";
+  if (soundOn) playTune([[784, .08], [1047, .14]]);
+};
+function playTune(notes) {          // notes = [[frequency, seconds], ...]
+  if (!soundOn || !audio) return;
+  let t = audio.currentTime;
+  for (const [freq, len] of notes) {
+    const osc = audio.createOscillator(), vol = audio.createGain();
+    osc.type = "square";
+    osc.frequency.value = freq;
+    vol.gain.setValueAtTime(0.08, t);
+    vol.gain.exponentialRampToValueAtTime(0.001, t + len);
+    osc.connect(vol).connect(audio.destination);
+    osc.start(t); osc.stop(t + len);
+    t += len + 0.03;
+  }
+}
+const TUNES = {
+  A: [[659, .25], [523, .4]],        // ding-dong
+  B: [[880, .09], [1175, .14]],      // happy chirps
+  C: [[196, .12], [196, .12], [196, .12]]  // low buzz
+};
 
 /* =====================================================================
    PROJECT A - read the doorbell feed every POLL_MS milliseconds
@@ -96,12 +264,14 @@ let lastSeenId = null;   // id of the newest data point we have already shown
 let count = 0;
 
 async function checkDoorbell() {
+  if (!IO_KEY) { showError("No key yet. Type it in the key box at the top."); return; }
   try {
     const res = await fetch(BASE + DOORBELL_FEED + "/data/last", {
       headers: { "X-AIO-Key": IO_KEY }
     });
-    if (res.status === 404) { showError("Feed '" + DOORBELL_FEED + "' not found. Did you create it on io.adafruit.com?"); return; }
-    if (res.status === 401) { showError("401: wrong username or key. Click 'change key'."); return; }
+    if (res.status === 404) { showError("Feed '" + DOORBELL_FEED + "' not found. Usually this means the key is missing or wrong (or the feed doesn't exist)."); showKeyBox("Adafruit couldn't find the feed with this key. Re-enter it."); return; }
+    if (res.status === 401) { showError("401: wrong username or key."); showKeyBox("That key was rejected. Re-enter it."); return; }
+    if (res.status === 429) { showError("429: too many messages. Wait a minute."); return; }
     if (!res.ok) { showError("Adafruit IO replied " + res.status); return; }
 
     const data = await res.json();       // { id, value, created_at, ... }
@@ -112,45 +282,64 @@ async function checkDoorbell() {
       if (!isFirstLoad) count++;
       showDoorbell(data.value, data.created_at, !isFirstLoad);
     }
-    document.getElementById("errors").textContent = "None. Connected.";
+    showOk("None. Connected. ✅");
   } catch (err) {
     showError("Could not reach Adafruit IO: " + err.message);
   }
 }
 
-function showDoorbell(value, createdAt, flash) {
-  // ===== YOUR TURN =====
-  // Right now this just prints the raw value ("A"). Turn it into a real message:
-  //   "A" -> "Someone is at the door!"   "B" -> ...   "C" -> ...
-  // =====================
-  let message;
-  if (value === "A") {
-    message = "Someone is at the door!";
-  } else if (value === "B") {
-    message = "Package delivered!";
-  } else if (value === "C") {
-    message = "Go away - not now!";
-  } else {
-    message = "Unknown button: " + value;
-  }
+function showDoorbell(value, createdAt, isNew) {
+  const key = String(value).trim().toUpperCase();
+  const info = DOORBELL[key] || { text: "Button " + value + " was pressed", emoji: "❓", color: "var(--accent)" };
+  const time = new Date(createdAt).toLocaleTimeString();
 
-  document.getElementById("doorbellStatus").textContent = message;
-  document.getElementById("doorbellTime").textContent = "at " + new Date(createdAt).toLocaleTimeString();
+  document.getElementById("doorbellStatus").textContent = info.text;
+  document.getElementById("doorbellStatus").style.color = info.color;
+  document.getElementById("doorbellTime").textContent = "at " + time;
   document.getElementById("doorbellCount").textContent = count;
+  document.getElementById("bell").textContent = info.emoji;
 
-  if (flash) {
+  // Project C: show "Let them in" only when someone is at the door.
+  document.getElementById("letInBtn").style.display = (key === "A") ? "inline-block" : "none";
+
+  // Add to the history list (newest on top, keep 5).
+  const li = document.createElement("li");
+  li.innerHTML = `<span class="dot" style="background:${info.color}"></span>`;
+  li.append(time + " - " + info.text);
+  const list = document.getElementById("history");
+  list.prepend(li);
+  while (list.children.length > 5) list.lastChild.remove();
+
+  if (isNew) {
+    // Glow the card in the button's color, shake the bell, play its tune.
     const card = document.getElementById("cardA");
-    card.classList.remove("flash");
-    void card.offsetWidth;               // restart the animation
-    card.classList.add("flash");
+    const bell = document.getElementById("bell");
+    card.classList.remove("flash-A", "flash-B", "flash-C");
+    bell.classList.remove("ring");
+    void card.offsetWidth;               // restart the animations
+    if (DOORBELL[key]) card.classList.add("flash-" + key);
+    bell.classList.add("ring");
+    if (TUNES[key]) playTune(TUNES[key]);
+    document.title = "🔔 " + info.text;  // shows on the browser tab too
   }
 }
 
 /* =====================================================================
    PROJECT B - write to the lamp feed when a button is clicked
    ===================================================================== */
+let lastSendMs = 0;
+
 async function sendLamp(value) {
   const status = document.getElementById("lampStatus");
+
+  // Rate limit protection: never send faster than SEND_GAP_MS.
+  const wait = SEND_GAP_MS - (Date.now() - lastSendMs);
+  if (wait > 0) {
+    status.textContent = "Too fast! Wait " + Math.ceil(wait / 1000) + " second(s).";
+    return;
+  }
+  lastSendMs = Date.now();
+
   status.textContent = "Sending '" + value + "'...";
   try {
     const res = await fetch(BASE + LAMP_FEED + "/data", {
@@ -159,12 +348,55 @@ async function sendLamp(value) {
       body: JSON.stringify({ value: value })
     });
     if (res.status === 429) { status.textContent = "Slow down! Rate limit hit (30 per minute)."; return; }
+    if (res.status === 401) { status.textContent = "401: wrong key. Click 'change key'."; return; }
     if (!res.ok) { status.textContent = "Adafruit IO replied " + res.status; return; }
-    status.textContent = "Sent '" + value + "' at " + new Date().toLocaleTimeString();
+    status.textContent = "Sent '" + value + "' at " + new Date().toLocaleTimeString() + " ✅";
+    updatePreview(value);
   } catch (err) {
     status.textContent = "Could not send: " + err.message;
   }
 }
+
+/* Project C: answer the door. Sends "letin" -> Pixels go green + chime. */
+async function letThemIn() {
+  const before = lastSendMs;
+  await sendLamp("letin");
+  if (lastSendMs !== before) {               // it actually sent (not blocked by the 2 s limit)
+    document.getElementById("letInBtn").style.display = "none";
+    document.getElementById("doorbellStatus").textContent = "Door opened. Welcome! 🎉";
+    document.getElementById("doorbellStatus").style.color = "#1fb85a";
+  }
+}
+
+/* Show what the lamp should look like right now. */
+let previewColor = "#333";
+function updatePreview(value) {
+  const box = document.getElementById("lampPreview");
+  const colors = { red: "#ff3b4f", green: "#1fb85a", blue: "#2f8bff", off: "#333", letin: "#1fb85a" };
+  if (value === "party") { box.classList.add("party"); return; }
+  if (value === "beep" || value.startsWith("bright:")) return;
+  box.classList.remove("party");
+  if (colors[value]) previewColor = colors[value];
+  else if (value.includes(",")) previewColor = "rgb(" + value + ")";
+  for (const dot of box.children) {
+    dot.style.background = previewColor;
+    dot.style.color = previewColor === "#333" ? "transparent" : previewColor;
+  }
+}
+
+/* Color picker -> "r,g,b". Sends when you let go of the picker. */
+document.getElementById("picker").addEventListener("change", (e) => {
+  const hex = e.target.value;                 // like "#ff8800"
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  sendLamp(r + "," + g + "," + b);
+});
+
+/* Brightness slider -> "bright:NN". Only sends when you let go (saves messages). */
+const slider = document.getElementById("bright");
+slider.addEventListener("input",  () => document.getElementById("brightNum").textContent = slider.value);
+slider.addEventListener("change", () => sendLamp("bright:" + slider.value));
 
 /* ---------- start ---------- */
 checkDoorbell();
